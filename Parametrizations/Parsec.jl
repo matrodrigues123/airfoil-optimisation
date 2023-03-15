@@ -1,3 +1,5 @@
+using Plots
+
 struct AirfoilPARSEC
     rLeUp :: Float64 # radius of the leading edge in the upper surface
     rLeLo :: Float64 # radius of the leading edge in the lower surface
@@ -59,12 +61,43 @@ function coefLow(a::AirfoilPARSEC) :: Array{Float64}
 
 end
 
+function generateCoordinates(a::AirfoilPARSEC, numPoints::Int64) :: Array{Tuple{Float64,Float64}}
+    # cosine distribution for x coordinates from 0 to 1
+    x :: Array{Float64} = zeros(numPoints)
+    for i = 1:numPoints
+        x[i] = 0.5*(1 - cos(pi * (i-1)/(numPoints-1)))
+    end
+
+    coords = Tuple{Float64, Float64}[]
+
+    zCoordUP :: Float64 = 0
+    aCoef = coefUp(a)
+
+    zCoordLow :: Float64 = 0
+    bCoef = coefLow(a)
+    
+    for xCoord in x
+        zCoordUP = 0
+        zCoordLow = 0 
+        for n = 1:6
+            zCoordUP += aCoef[n] * xCoord^(n - 0.5)
+            zCoordLow += bCoef[n] * xCoord^(n - 0.5)
+        end
+        push!(coords, (xCoord, zCoordUP))
+        push!(coords, (xCoord, zCoordLow))
+    end
+
+    return coords
+end
+
 function main()
     exampleAirfoil = AirfoilPARSEC(0.02, 0.005, 0.43, 0.12, 0.23, -0.018, -0.8, 0.4, -0.001, 0, -5*π/180, 25*π/180)
-    print(coefUp(exampleAirfoil))
-    print()
-    print(coefLow(exampleAirfoil))
-    
+    # exampleAirfoil = AirfoilPARSEC(0.02, 0.005, 0.43, 0.12, 0.23, -0.018, -0.8, 0.35, -0.01, 0, -0.17, 0.17)
+    points = generateCoordinates(exampleAirfoil, 100)
+
+    scatter(points, xlabel="x", ylabel="z", label="airfoil PARSEC")
+    xlims!((0.0,1.0))
+    ylims!((-0.5,0.5))
 end
 
 main()
